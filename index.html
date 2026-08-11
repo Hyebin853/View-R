@@ -117,8 +117,6 @@ a{color:inherit}
 .ms i:nth-child(3){background:#00a3f4;left:0;top:12.77px}
 .ms i:nth-child(4){background:#ffba00;left:12.77px;top:12.77px}
 
-.pw-forget{font-size:15px;line-height:20px;color:var(--text-60)}
-.pw-forget:hover{text-decoration:underline;color:var(--text-80)}
 
 .terms{width:336px;text-align:center;font-size:18px;line-height:21px;color:var(--text-80)}
 .terms u{text-decoration:underline}
@@ -426,10 +424,7 @@ body{padding-top:36px}
             </div>
           </div>
           <div class="field">
-            <div style="display:flex;align-items:center;justify-content:space-between">
-              <label for="pwInput" id="pwLabel">Password</label>
-              <button class="pw-forget" id="pwForget" onclick="alert('Password reset flow')">Forget password?</button>
-            </div>
+            <label for="pwInput" id="pwLabel">Password</label>
             <div class="input" id="pwBox">
               <input id="pwInput" type="password" placeholder="Enter password" autocomplete="current-password">
               <button class="eye" onclick="togglePw('pwInput')" aria-label="Show password">
@@ -767,7 +762,6 @@ function openPassword(mode){
   const isCreate = mode === 'create';
   /* 문구는 모두 Figma 원문 그대로 사용 */
   document.getElementById('pwContinue').textContent = isCreate ? 'Create Account' : 'Login';
-  document.getElementById('pwForget').style.display = isCreate ? 'none' : 'block';
   /* 계정 생성일 때만 Confirm password 노출 (재로그인은 1회 입력) */
   document.getElementById('pwConfirmField').style.display = isCreate ? 'flex' : 'none';
   document.getElementById('pwConfirm').value = '';
