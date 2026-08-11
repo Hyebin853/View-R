@@ -432,13 +432,27 @@ body{padding-top:36px}
             </div>
             <div class="input" id="pwBox">
               <input id="pwInput" type="password" placeholder="Enter password" autocomplete="current-password">
-              <button class="eye" onclick="togglePw()" aria-label="Show password">
+              <button class="eye" onclick="togglePw('pwInput')" aria-label="Show password">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bdbdbf" stroke-width="1.6">
                   <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>
                 </svg>
               </button>
             </div>
             <p class="err" id="pwErr">Error message</p>
+          </div>
+
+          <!-- Confirm password — 계정 생성(첫 로그인) 플로우에서만 노출 : Figma 2853:225335 -->
+          <div class="field" id="pwConfirmField">
+            <label for="pwConfirm">Confirm password</label>
+            <div class="input" id="pwConfirmBox">
+              <input id="pwConfirm" type="password" placeholder="Enter password" autocomplete="new-password">
+              <button class="eye" onclick="togglePw('pwConfirm')" aria-label="Show password">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#bdbdbf" stroke-width="1.6">
+                  <path d="M2 12s3.6-6.5 10-6.5S22 12 22 12s-3.6 6.5-10 6.5S2 12 2 12z"/><circle cx="12" cy="12" r="2.8"/>
+                </svg>
+              </button>
+            </div>
+            <p class="err" id="pwConfirmErr">Error message</p>
           </div>
           </div>
           <button class="btn btn-primary" id="pwContinue" disabled>Create Account</button>
@@ -754,6 +768,11 @@ function openPassword(mode){
   /* 문구는 모두 Figma 원문 그대로 사용 */
   document.getElementById('pwContinue').textContent = isCreate ? 'Create Account' : 'Login';
   document.getElementById('pwForget').style.display = isCreate ? 'none' : 'block';
+  /* 계정 생성일 때만 Confirm password 노출 (재로그인은 1회 입력) */
+  document.getElementById('pwConfirmField').style.display = isCreate ? 'flex' : 'none';
+  document.getElementById('pwConfirm').value = '';
+  document.getElementById('pwConfirmErr').classList.remove('show');
+  document.getElementById('pwConfirmBox').classList.remove('error');
   document.getElementById('pwInput').value = '';
   document.getElementById('pwContinue').disabled = true;
   document.getElementById('pwErr').classList.remove('show');
@@ -769,16 +788,42 @@ const pwBtn   = document.getElementById('pwContinue');
 const pwErr   = document.getElementById('pwErr');
 const pwBox   = document.getElementById('pwBox');
 
-pwInput.addEventListener('input', () => {
-  const isCreate = pwBtn.textContent.trim() === 'Create Account';
-  pwBtn.disabled = pwInput.value.length < (isCreate ? 8 : 1);
+const pwConfirm    = document.getElementById('pwConfirm');
+const pwConfirmBox = document.getElementById('pwConfirmBox');
+const pwConfirmErr = document.getElementById('pwConfirmErr');
+
+function isCreateMode(){ return pwBtn.textContent.trim() === 'Create Account'; }
+
+/* 계정 생성: 8자 이상 + 두 입력값 일치해야 활성화 / 로그인: 1자 이상 */
+function refreshPwState(){
   pwErr.classList.remove('show'); pwBox.classList.remove('error');
+  pwConfirmErr.classList.remove('show'); pwConfirmBox.classList.remove('error');
+  if (isCreateMode()){
+    /* 일치 여부는 Create Account 클릭 시점에 검증한다 */
+    pwBtn.disabled = !(pwInput.value.length >= 8 && pwConfirm.value.length > 0);
+  } else {
+    pwBtn.disabled = pwInput.value.length < 1;
+  }
+}
+pwInput.addEventListener('input', refreshPwState);
+pwConfirm.addEventListener('input', refreshPwState);
+pwInput.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  if (isCreateMode()) pwConfirm.focus();
+  else if (!pwBtn.disabled) pwBtn.click();
 });
-pwInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !pwBtn.disabled) pwBtn.click(); });
+pwConfirm.addEventListener('keydown', e => { if (e.key === 'Enter' && !pwBtn.disabled) pwBtn.click(); });
 
 pwBtn.addEventListener('click', () => {
   const isCreate = pwBtn.textContent.trim() === 'Create Account';
   if (isCreate){
+    if (pwInput.value !== pwConfirm.value){
+      pwConfirmBox.classList.add('error');
+      pwConfirmErr.textContent = "Passwords don't match. Please try again.";
+      pwConfirmErr.classList.add('show');
+      pwConfirm.focus();
+      return;
+    }
     /* 승인 완료 후 비밀번호 설정 → 바로 대시보드 */
     upsertAccount(state.email, { hasPassword:true });
     logEvent(state.email + ' — 계정 생성 완료, View R Studio 진입');
@@ -789,8 +834,9 @@ pwBtn.addEventListener('click', () => {
   }
 });
 
-function togglePw(){
-  pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
+function togglePw(id){
+  const el = document.getElementById(id || 'pwInput');
+  el.type = el.type === 'password' ? 'text' : 'password';
 }
 
 
