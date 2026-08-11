@@ -146,6 +146,20 @@ a{color:inherit}
   color:#ffffff;font-size:14px;line-height:16px;font-weight:500;
 }
 .badge .dot{width:8px;height:8px;border-radius:50%;background:var(--green);flex:0 0 8px}
+/* ProfileHeading — Figma 2762:119377 : bg grey-30, radius 12, padding 16, w467 */
+.profile-card{
+  width:var(--form-w);display:flex;align-items:center;justify-content:space-between;
+  background:var(--surface);border-radius:12px;padding:16px;
+}
+.pc-user{display:flex;align-items:center;gap:12px}
+.pc-av{
+  width:48px;height:48px;flex:0 0 48px;border-radius:999px;background:var(--bg);
+  display:grid;place-items:center;font-size:20px;line-height:23px;font-weight:500;color:#fff;
+}
+.pc-meta{display:flex;flex-direction:column;gap:4px}
+.pc-company{font-size:14px;line-height:16px;font-weight:500;color:var(--text-60)}
+.pc-email{font-size:17px;line-height:20px;font-weight:500;color:var(--text-90)}
+
 .actions{width:var(--form-w);display:flex;flex-direction:column;align-items:center;gap:24px}
 .link{font-size:16px;line-height:20px;color:var(--text-80)}
 .link:hover{text-decoration:underline;color:var(--text-90)}
@@ -245,6 +259,13 @@ a{color:inherit}
 .hist-head .spacer{flex:1}
 .hist-head button{font-size:12px;color:var(--text-60);border:1px solid #2a2a2d;border-radius:6px;padding:5px 10px}
 .hist-head button:hover{background:#1e1e20;color:var(--text-90)}
+/* Reset — 눈에 띄게 */
+.hist-head .btn-reset{background:#e5484d;border-color:#e5484d;color:#fff;font-weight:500;padding:6px 14px}
+.hist-head .btn-reset:hover{background:#f05a5f;border-color:#f05a5f;color:#fff}
+/* 계정별 승인 버튼 */
+.acct .approve{font-size:11px;font-weight:500;padding:4px 10px;border-radius:4px;
+  background:var(--green);color:#fff;white-space:nowrap}
+.acct .approve:hover{filter:brightness(1.08)}
 .hist-body{overflow:auto;padding:14px 16px}
 .hist-sec{font-size:12px;color:#5f5f66;text-transform:uppercase;letter-spacing:.04em;margin:10px 0 8px}
 .acct{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;background:#1a1a1c;margin-bottom:8px}
@@ -315,11 +336,10 @@ body{padding-top:36px}
   <span id="stepName">01 Enter email</span>
   <span class="spacer"></span>
   <button onclick="go('email')">01 이메일</button>
-  <button onclick="startCode()">02 인증코드</button>
-  <button onclick="jumpPassword()">03 비밀번호 생성</button>
-  <button onclick="go('requested')">04 승인 대기</button>
-  <button onclick="go('approved')">05 승인 완료</button>
-  <button onclick="go('recents')">06 Recents</button>
+  <button onclick="go('requested')">02 승인 대기</button>
+  <button onclick="go('approved')">03 승인 완료</button>
+  <button onclick="jumpPassword()">04 비밀번호</button>
+  <button onclick="go('recents')">05 Recents</button>
 </div>
 
 <!-- ============ 01 / 02 / 03  Enter email (Step 1) ============ -->
@@ -393,10 +413,12 @@ body{padding-top:36px}
 
       <div class="form">
         <div class="fields">
+          <!-- Email Password Wrapper — Figma 2762:119120 : gap 16 -->
+          <div class="field" style="gap:16px">
           <div class="field">
             <label>Email address</label>
-            <div class="input readonly">
-              <input type="text" id="pwEmail" readonly value="">
+            <div class="input">
+              <input type="text" id="pwEmail" readonly value="" style="color:var(--text-80)">
             </div>
           </div>
           <div class="field">
@@ -414,45 +436,17 @@ body{padding-top:36px}
             </div>
             <p class="err" id="pwErr">Error message</p>
           </div>
+          </div>
           <button class="btn btn-primary" id="pwContinue" disabled>Create Account</button>
         </div>
-
-        <div class="or"><span class="line"></span><span>Or</span><span class="line"></span></div>
-        <div class="socials" id="socialsPw"></div>
       </div>
 
-      <div class="terms">
-        By connecting your account, you agree<br>
-        to our <u>Terms of Service</u> and <u>Privacy Policy</u>
-      </div>
-      <button class="guest" onclick="go('recents')">Get started as a guest</button>
+      <!-- Additional Action — Figma 2845:223137 -->
+      <button class="link" onclick="go('email')">Sign in another way</button>
     </div>
   </div>
 </section>
 
-<!-- ============ 05/07 Enter verification code ============ -->
-<section class="screen" id="code">
-  <div class="header-bar"><span class="logo" data-logo></span></div>
-  <div class="center">
-    <div class="result">
-      <div class="head">
-        <h1>Check your email</h1>
-        <p class="sub">We sent a 6-digit code to <span id="codeEmail"></span>.<br>Enter it below to continue.</p>
-        <!-- Figma 2762:119795 원문 그대로 -->
-      </div>
-      <div style="width:var(--form-w);display:flex;flex-direction:column;gap:8px">
-        <div class="input" id="codeBox">
-          <input id="codeInput" inputmode="numeric" maxlength="6" placeholder="Enter the 6-digit code">
-        </div>
-        <p class="err" id="codeErr">Error message</p>
-      </div>
-      <div class="actions">
-        <button class="btn btn-primary" id="codeContinue" disabled>Verify and continue</button>
-        <button class="link" id="resendBtn" onclick="resend()">Resend email</button>
-      </div>
-    </div>
-  </div>
-</section>
 
 <!-- ============ 06 Access request sent ============ -->
 <section class="screen" id="requested">
@@ -487,19 +481,19 @@ body{padding-top:36px}
         <h1>Access approved</h1>
         <p class="sub">Your account has been successfully approved.<br>Sign in to start using View R Studio.</p>
       </div>
-      <div class="info">
-        <div class="row" style="height:80px">
-          <span class="avatar" style="margin-right:12px"></span>
-          <span style="flex:1">
-            <span style="display:block;font-size:13px;color:var(--text-60)" id="apprCompany">Byond R</span>
-            <span class="val" style="font-size:17px;font-weight:500"><span class="prov" id="apprProv"></span><span id="apprEmail"></span></span>
+      <!-- ProfileHeading — Figma 2762:119377 -->
+      <div class="profile-card">
+        <div class="pc-user">
+          <span class="pc-av" id="apprInitial">J</span>
+          <span class="pc-meta">
+            <span class="pc-company" id="apprCompany">Byond R</span>
+            <span class="pc-email val"><span class="prov" id="apprProv"></span><span id="apprEmail"></span></span>
           </span>
-          <span class="badge"><span class="dot"></span>Approved</span>
         </div>
+        <span class="badge"><span class="dot"></span>Approved</span>
       </div>
       <div class="actions">
-        <button class="btn btn-primary" onclick="signIn()">Sign in to View R Studio</button>
-        <button class="link" onclick="go('email')">Back to sign in</button>
+        <button class="btn btn-primary" onclick="signIn()">Continue</button>
       </div>
     </div>
   </div>
@@ -563,7 +557,7 @@ body{padding-top:36px}
   <div class="hist-head">
     <b>로그인 기록</b>
     <span class="spacer"></span>
-    <button onclick="resetHistory()">Reset</button>
+    <button class="btn-reset" onclick="resetHistory()">Reset</button>
     <button onclick="document.getElementById('histPanel').classList.toggle('collapsed')">▾</button>
   </div>
   <div class="hist-body">
@@ -587,9 +581,8 @@ const LOGO_SVG = `<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://
 document.querySelectorAll('[data-logo]').forEach(el => el.innerHTML = LOGO_SVG);
 
 /* ---------- state ---------- */
-const state = { email:'', firstLogin:true, timer:null, left:59 };
+const state = { email:'', provider:null };
 const PARTNER_DOMAIN = 'byond-r.com';   // 이 도메인이면 모두 통과
-const DEMO_CODE = '123456';             // 인증코드
 /* 첫 로그인 시나리오 고정: 인증 성공 → 항상 Access request sent 로 분기 */
 
 /* ---------- 저장소 : 새로고침해도 유지, Reset 때만 초기화 ---------- */
@@ -627,7 +620,9 @@ function renderHistory(){
     const a = store.accounts[k];
     const approved = a.status === 'approved';
     return '<div class="acct"><span class="em" title="'+a.email+'">'+a.email+'</span>'+
-           '<span class="st'+(approved?'':' pending')+'">'+(approved?'Approved':'Awaiting')+'</span></div>';
+           '<span class="st'+(approved?'':' pending')+'">'+(approved?'Approved':'Awaiting')+'</span>'+
+           (approved ? '' : '<button class="approve" onclick="approveAccount(\''+a.email+'\')">승인</button>') +
+           '</div>';
   }).join('') : '<div class="hist-empty">기억된 계정이 없습니다.</div>';
 
   const logWrap = document.getElementById('histLog');
@@ -635,6 +630,20 @@ function renderHistory(){
     '<li><time>'+e.t+'</time><span>'+e.msg+'</span></li>').join('')
     : '<li class="hist-empty">기록이 없습니다.</li>';
 }
+/* 관리자 승인 시뮬레이션 — 기록 패널의 '승인' 버튼 */
+function approveAccount(email){
+  const a = upsertAccount(email, { status:'approved' });
+  logEvent(email + ' — 관리자가 승인함');
+  /* 현재 이 계정으로 진행 중이면 본 화면도 승인 완료로 전환 */
+  if ((state.email || '').toLowerCase() === email.toLowerCase()){
+    setAccountSource(a.source === 'social' ? 'social' : 'work', state.provider);
+    document.getElementById('apprCompany').textContent = a.company || 'Not assigned';
+    go('approved');
+  } else {
+    showToast(email + ' 승인 완료');
+  }
+}
+
 function resetHistory(){
   store = { accounts:{}, log:[] };
   saveStore(); renderHistory();
@@ -644,12 +653,11 @@ function resetHistory(){
 
 const stepNames = {
   email:'01 Enter email',
-  code:'02 Enter verification code',
-  password:'03 Create password (첫 로그인)',
+  password:'04 Password',
   gsi:'Google 계정 선택',
-  requested:'04 Access request sent',
-  approved:'05 Access approved',
-  recents:'06 Recents (Signed in)',
+  requested:'02 Access request sent',
+  approved:'03 Access approved',
+  recents:'05 Recents (Signed in)',
 };
 
 function go(id){
@@ -657,7 +665,6 @@ function go(id){
   document.getElementById(id).classList.add('active');
   document.getElementById('stepName').textContent = stepNames[id] || id;
   hideToast();
-  if (id !== 'code') stopTimer();
   window.scrollTo(0,0);
 }
 
@@ -673,10 +680,12 @@ const emailBtn   = document.getElementById('emailContinue');
 const emailErr   = document.getElementById('emailErr');
 const emailBox   = document.getElementById('emailBox');
 
-const validEmail = v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+/* @ 가 없거나 공백이 포함되면 형식 오류 */
+const validEmail = v => !/\s/.test(v) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
 emailInput.addEventListener('input', () => {
-  emailBtn.disabled = !validEmail(emailInput.value.trim());
+  /* 값이 있으면 Continue 활성화 — 형식 검증은 클릭 시점에 */
+  emailBtn.disabled = emailInput.value.trim().length === 0;
   emailErr.classList.remove('show');
   emailBox.classList.remove('error');
 });
@@ -684,6 +693,13 @@ emailInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !emailBtn
 
 emailBtn.addEventListener('click', () => {
   const v = emailInput.value.trim();
+  if (!validEmail(emailInput.value)){
+    emailBox.classList.add('error');
+    emailErr.textContent = 'Enter a valid email address.';
+    emailErr.classList.add('show');
+    logEvent('이메일 형식 오류 — ' + (emailInput.value || '(빈 값)'));
+    return;
+  }
   const domain = (v.split('@')[1] || '').toLowerCase();
   setEmail(v);
   setAccountSource('work');
@@ -693,15 +709,55 @@ emailBtn.addEventListener('click', () => {
   document.getElementById('apprCompany').textContent = company;
 
   const acct = getAccount(v);
-  if (acct && acct.status === 'approved'){
-    /* 승인까지 끝난 계정 → 인증코드 생략하고 바로 비밀번호 로그인 */
-    logEvent(v + ' — 승인된 계정, 비밀번호 로그인으로 이동');
-    openPassword('signin');
+  if (!acct){
+    /* 첫 로그인 → 곧바로 관리자 승인 요청 */
+    upsertAccount(v, { status:'pending', company:company, source:'work', hasPassword:false });
+    logEvent(v + ' — 첫 로그인, 승인 요청 발송');
+    go('requested');
+  } else if (acct.status !== 'approved'){
+    /* 아직 승인 대기 중 */
+    logEvent(v + ' — 승인 대기 중인 계정');
+    go('requested');
+  } else if (!acct.hasPassword){
+    /* 승인은 됐지만 비밀번호 미설정 → 계정 생성 */
+    logEvent(v + ' — 승인 완료, 비밀번호 설정 필요');
+    openPassword('create');
   } else {
-    logEvent(v + ' — 첫 로그인, 인증코드 발송');
-    startCode();
+    /* 승인 + 비밀번호 설정 완료 → 로그인 */
+    logEvent(v + ' — 기존 계정, 로그인 화면');
+    openPassword('signin');
   }
 });
+
+/* ---------- 이메일 상태 헬퍼 ---------- */
+function ensureEmail(){
+  if (!state.email) setEmail('jane@' + PARTNER_DOMAIN);
+}
+function setEmail(v){
+  state.email = v;
+  document.getElementById('pwEmail').value = v;
+  document.getElementById('reqEmail').textContent = v;
+  document.getElementById('apprEmail').textContent = v;
+  document.getElementById('apprInitial').textContent = (v[0] || 'J').toUpperCase();
+}
+
+/* 비밀번호 화면을 두 가지 모드로 사용한다
+   'create' : 기록 없는 계정 — 계정 생성 (버튼 = Create Account)
+   'signin' : 기록 있는 계정 — 비밀번호로 로그인 (버튼 = Login) */
+function openPassword(mode){
+  ensureEmail();
+  const isCreate = mode === 'create';
+  /* 문구는 모두 Figma 원문 그대로 사용 */
+  document.getElementById('pwContinue').textContent = isCreate ? 'Create Account' : 'Login';
+  document.getElementById('pwForget').style.display = isCreate ? 'none' : 'block';
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwContinue').disabled = true;
+  document.getElementById('pwErr').classList.remove('show');
+  document.getElementById('pwBox').classList.remove('error');
+  stepNames.password = isCreate ? '04 Create Account (첫 로그인)' : '02 Login (기존 계정)';
+  go('password');
+}
+function jumpPassword(){ openPassword('create'); }
 
 /* ---------- step 2 : password ---------- */
 const pwInput = document.getElementById('pwInput');
@@ -719,15 +775,12 @@ pwInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !pwBtn.disab
 pwBtn.addEventListener('click', () => {
   const isCreate = pwBtn.textContent.trim() === 'Create Account';
   if (isCreate){
-    upsertAccount(state.email, {
-      status:'pending',
-      company: document.getElementById('reqCompany').textContent,
-      source: document.getElementById('reqCompanyRow').style.display === 'none' ? 'social' : 'work'
-    });
-    logEvent(state.email + ' — 계정 생성, 승인 대기');
-    go('requested');
+    /* 승인 완료 후 비밀번호 설정 → 바로 대시보드 */
+    upsertAccount(state.email, { hasPassword:true });
+    logEvent(state.email + ' — 계정 생성 완료, View R Studio 진입');
+    go('recents');
   } else {
-    logEvent(state.email + ' — 비밀번호 로그인 성공');
+    logEvent(state.email + ' — 로그인 성공');
     go('recents');
   }
 });
@@ -736,82 +789,29 @@ function togglePw(){
   pwInput.type = pwInput.type === 'password' ? 'text' : 'password';
 }
 
-/* ---------- step 2-alt : verification code ---------- */
-const codeInput = document.getElementById('codeInput');
-const codeBtn   = document.getElementById('codeContinue');
-const codeErr   = document.getElementById('codeErr');
-const codeBox   = document.getElementById('codeBox');
-
-/* 상단 바에서 바로 점프할 때 이메일이 비어 있으면 기본값 채움 */
-function ensureEmail(){
-  if (!state.email) setEmail('jane@' + PARTNER_DOMAIN);
-}
-function setEmail(v){
-  state.email = v;
-  document.getElementById('pwEmail').value = v;
-  document.getElementById('codeEmail').textContent = v;
-  document.getElementById('reqEmail').textContent = v;
-  document.getElementById('apprEmail').textContent = v;
-}
-/* 비밀번호 화면을 두 가지 모드로 사용한다
-   'create' : 첫 로그인 — 코드 인증 후 비밀번호 생성 (버튼 = Create account)
-   'signin' : 기존 계정 — 비밀번호로 로그인 (버튼 = Continue) */
-function openPassword(mode){
-  ensureEmail();
-  const isCreate = mode === 'create';
-  /* 문구는 모두 Figma 원문 그대로 사용 */
-  document.getElementById('pwContinue').textContent = isCreate ? 'Create Account' : 'Login';
-  document.getElementById('pwForget').style.display = isCreate ? 'none' : 'block';
-  document.getElementById('pwInput').value = '';
-  document.getElementById('pwContinue').disabled = true;
-  document.getElementById('pwErr').classList.remove('show');
-  document.getElementById('pwBox').classList.remove('error');
-  stepNames.password = isCreate ? '03 Create Account (첫 로그인)' : '03 Login (기존 계정)';
-  go('password');
-}
-function jumpPassword(){ openPassword('create'); }
-
-function startCode(){
-  ensureEmail();
-  codeInput.value = '';
-  codeBtn.disabled = true;
-  codeErr.classList.remove('show'); codeBox.classList.remove('error');
-  go('code');
-  startTimer();
-  showToast('데모 인증코드는 "' + DEMO_CODE + '" 입니다.');
-}
-codeInput.addEventListener('input', () => {
-  codeInput.value = codeInput.value.replace(/\D/g,'').slice(0,6);
-  codeBtn.disabled = codeInput.value.length !== 6;
-  codeErr.classList.remove('show'); codeBox.classList.remove('error');
-});
-codeInput.addEventListener('keydown', e => { if (e.key === 'Enter' && !codeBtn.disabled) codeBtn.click(); });
-codeBtn.addEventListener('click', () => {
-  if (codeInput.value !== DEMO_CODE) {
-    codeBox.classList.add('error'); codeErr.classList.add('show');
-    return;
-  }
-  /* 코드 인증 성공 → 비밀번호 생성 단계 */
-  openPassword('create');
-});
-
-/* Figma에 타이머 문구가 없어 라벨은 'Resend email' 고정 */
-function startTimer(){}
-function stopTimer(){}
-function resend(){ showToast('A new code has been sent to ' + state.email); }
 
 /* ---------- branch after successful auth ---------- */
+/* 승인 여부는 우측 기록 패널의 '승인' 버튼으로만 바뀐다 */
 function checkApproval(){
-  showToast('The request will be approved soon. Please try again later.');
-  setTimeout(() => {
-    upsertAccount(state.email, { status:'approved' });
-    logEvent(state.email + ' — 관리자 승인 완료');
+  const acct = getAccount(state.email);
+  if (acct && acct.status === 'approved'){
+    logEvent(state.email + ' — 승인 확인됨');
     go('approved');
-  }, 1200);
+  } else {
+    logEvent(state.email + ' — 승인 상태 확인, 아직 대기 중');
+    showToast('The request will be approved soon. Please try again later.');
+  }
 }
+/* Access approved → 비밀번호가 아직 없으면 계정 생성 단계로 */
 function signIn(){
-  logEvent(state.email + ' — View R Studio 로그인');
-  go('recents');
+  const acct = getAccount(state.email);
+  if (acct && !acct.hasPassword){
+    logEvent(state.email + ' — 승인 완료, 비밀번호 설정으로 이동');
+    openPassword('create');
+  } else {
+    logEvent(state.email + ' — View R Studio 로그인');
+    go('recents');
+  }
 }
 /* 승인 대기/완료 화면의 계정 정보 구성
    'work'   : 회사 이메일 가입 → Company + Work email + Status  (Figma 2762:119266)
@@ -872,14 +872,12 @@ function finishSocial(provider){
     logEvent(state.email + ' — ' + provider + ' 재로그인 (승인 완료 계정)');
     setTimeout(() => go('recents'), 700);
   } else {
-    upsertAccount(state.email, { status:'pending', company:'Not assigned', source:'social' });
+    /* 소셜 계정은 비밀번호 설정 단계가 없다 */
+    upsertAccount(state.email, { status:'pending', company:'Not assigned', source:'social', hasPassword:true });
     logEvent(state.email + ' — ' + provider + ' 로그인, 승인 대기');
     setTimeout(() => go('requested'), 700);
   }
 }
-
-/* 소셜 로그인 블록은 Figma의 동일 컴포넌트 → 비밀번호 화면에도 그대로 복제 */
-document.getElementById('socialsPw').innerHTML = document.getElementById('socialsTemplate').innerHTML;
 
 /* Recents 대시보드는 Figma 시안 이미지를 그대로 사용 (2762:90561) */
 
