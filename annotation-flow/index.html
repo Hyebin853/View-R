@@ -428,6 +428,9 @@ const S={
        pins:[[752,442],[1188,615,null,'B']]},
  'S5':{sb:'listEdit', t:'Edit — 텍스트 수정',
        pins:[[752,442,'dim'],[1265,443,'focus'],[1188,615,'dim','B']]},
+ 'S6':{sb:'list3sel', t:'Annotation 옵션',
+       pins:[[752,442,'dim'],[1265,443,'focus'],[1188,615,'dim','B']],
+       quickOptions:[['Delete','S4'],['Edit','S5']]},
 
  /* ===== 4. [pin] Select, Edit, Delete ===== */
  'P1':{sb:'add', t:'Pin 3개 — 기본', pins:[[752,442],[1265,443],[1188,615,null,'B']]},
@@ -500,11 +503,11 @@ const FLOWS={
       flow:{'C1':[{t:'파츠 선택',to:'C2'}],'C2':[{t:'annotation 클릭',to:'C3'}],'C3':[]}}
    ]},
  sbar:{label:'3. [sidebar] Select, Edit, Delete', variants:null,
-   order:['S1','S2','S3','S4','S5'],
+   order:['S1','S2','S3','S6'],
    flow:{'S1':[{t:'annotation 리스트에서 하나 클릭',to:'S2'}],
          'S2':[{t:'⋯ 클릭',to:'S3'}],
-         'S3':[{t:'delete',to:'S4'},{t:'edit',to:'S5'}],
-         'S4':[],'S5':[]}},
+         'S3':[{t:'옵션 보기',to:'S6'}],
+         'S6':[],'S4':[],'S5':[]}},
  pinf:{label:'4. [pin] Select, Edit, Delete', variants:null,
    order:['P1','P2','P5'],
    flow:{'P1':[{t:'annotation pin 클릭',to:'P2'}],
