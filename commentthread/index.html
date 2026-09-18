@@ -1,1 +1,636 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>View R Thread Sandbox</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Roboto+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    color-scheme: dark;
+    --panel: #2A2A2D;
+    --card: #202023;
+    --bubble: #121212;
+    --divider: #3A3A3E;
+    --text: #E5E5E6;
+    --sub: #BDBDBF;
+    --dim: #78787C;
+    --violet: #9A66FF;
+    --amber: #E5BA73;
+    --green: #50B786;
+    --font: "Roboto", system-ui, -apple-system, "Segoe UI", sans-serif;
+    --mono: "Roboto Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sidebar-w: 340px;
+  }
+  html, body { height: 100%; }
+  body {
+    margin: 0; overflow: hidden; font-family: var(--font); color: var(--text);
+    background: radial-gradient(120% 90% at 42% 40%, #232326 0%, #1A1A1C 58%, #141416 100%);
+  }
+  button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  :focus-visible { outline: 2px solid var(--violet); outline-offset: 2px; }
+  svg { display: block; }
+  [hidden] { display: none !important; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
+  #stage { position: fixed; inset: 0 var(--sidebar-w) 0 0; }
+  #stage canvas { display: block; }
+  #overlay { position: fixed; inset: 0 var(--sidebar-w) 0 0; pointer-events: none; overflow: hidden; }
+  #wires { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; }
+
+  /* ---------- pins ---------- */
+  .pin {
+    position: absolute; top: 0; left: 0; pointer-events: auto; cursor: pointer;
+    width: 32px; height: 32px; border-radius: 999px; display: grid; place-items: center;
+    background: var(--violet); color: #fff; font: 500 15px/1 var(--font);
+    box-shadow: 0 0 0 3px rgba(20,20,22,.85), 0 6px 14px rgba(0,0,0,.45);
+    transition: opacity .12s, transform .12s;
+  }
+  .pin.amber { background: var(--amber); color: #201A0C; }
+  .pin.dim { opacity: .38; }
+  .pin.sel { box-shadow: 0 0 0 3px rgba(20,20,22,.85), 0 0 0 5px var(--violet), 0 6px 14px rgba(0,0,0,.45); }
+  .pin:hover { transform: translate(var(--px), var(--py)) scale(1.06); }
+  .dot { position: absolute; top: 0; left: 0; width: 9px; height: 9px; border-radius: 999px; background: #fff; box-shadow: 0 0 0 2px rgba(20,20,22,.8); }
+
+  /* ---------- shared comment bits ---------- */
+  .meta { display: flex; align-items: center; gap: 8px; }
+  .av { width: 28px; height: 28px; border-radius: 999px; display: grid; place-items: center; background: var(--violet); color: #fff; font: 500 14px/1 var(--font); flex: none; }
+  .av.amber { background: var(--amber); color: #201A0C; }
+  .who { font: 500 14px/16px var(--font); color: #fff; }
+  .when { font: 400 13px/15px var(--font); color: var(--dim); }
+  .more { margin-left: auto; color: var(--dim); font: 500 15px/1 var(--font); letter-spacing: 1px; }
+  .body { font: 400 13px/19px var(--font); color: var(--text); }
+  .body .mention { color: var(--green); }
+  .shot { width: 96px; height: 56px; border-radius: 8px; flex: none; position: relative; overflow: hidden; background: linear-gradient(135deg, #4A4A50, #2C2C31 60%, #3A3A40); }
+  .shot span { position: absolute; left: 4px; top: 4px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box; border-radius: 4px; background: rgba(18,18,18,.85); color: var(--sub); font: 400 11px/16px var(--mono); text-align: center; }
+  .att { display: flex; gap: 6px; }
+  .att i { width: 62px; height: 62px; border-radius: 8px; background: linear-gradient(135deg, #4A4A50, #2C2C31 60%, #3A3A40); display: grid; place-items: center; font: 500 13px/1 var(--font); color: #fff; font-style: normal; }
+  .att i.plus { background: #55555B; }
+  .reply-input {
+    display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 6px 0 14px;
+    border-radius: 10px; background: #3A3A3E; color: var(--sub); font: 400 13px var(--font);
+  }
+  .reply-input b { margin-left: auto; width: 26px; height: 26px; border-radius: 999px; background: #121214; display: grid; place-items: center; color: #fff; font-weight: 400; }
+
+  /* ---------- floating thread ---------- */
+  #float {
+    position: fixed; width: 320px; box-sizing: border-box; z-index: 40;
+    background: var(--panel); border: 1px solid #3E3E44; border-radius: 14px;
+    box-shadow: 0 18px 44px rgba(0,0,0,.55);
+  }
+  #float .bar {
+    display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 12px 0 16px;
+    border-bottom: 1px solid var(--divider); cursor: grab; touch-action: none;
+  }
+  #float.dragging .bar { cursor: grabbing; }
+  #float .bar h2 { margin: 0; font: 500 13px/1 var(--font); color: #fff; }
+  #float .bar .grip { margin-left: auto; display: flex; gap: 6px; align-items: center; }
+  #float .x { width: 26px; height: 26px; border-radius: 8px; display: grid; place-items: center; color: var(--sub); }
+  #float .x:hover { background: rgba(255,255,255,.07); }
+  #float .inner { padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px; max-height: 60vh; overflow-y: auto; }
+  #float .head { display: flex; gap: 10px; }
+  #float .head .body { padding-top: 2px; }
+
+  /* ---------- sidebar ---------- */
+  #side {
+    position: fixed; top: 0; right: 0; bottom: 0; width: var(--sidebar-w); box-sizing: border-box;
+    background: var(--panel); display: flex; flex-direction: column; z-index: 30;
+  }
+  #side .top { display: flex; align-items: center; justify-content: flex-end; gap: 12px; height: 72px; padding: 0 16px; border-bottom: 1px solid var(--divider); }
+  #side .save { height: 36px; padding: 0 16px; border-radius: 10px; background: var(--green); color: #0E2C1E; font: 500 14px var(--font); }
+  #side .title { display: flex; align-items: center; height: 56px; padding: 0 16px 0 20px; font: 500 16px var(--font); color: #fff; }
+  #side .title .plus { margin-left: auto; color: var(--sub); font-size: 20px; line-height: 1; }
+  #list { flex: 1; overflow-y: auto; padding: 4px 12px 20px 20px; display: flex; flex-direction: column; gap: 10px; }
+  #list::-webkit-scrollbar { width: 6px; }
+  #list::-webkit-scrollbar-thumb { background: #46464C; border-radius: 3px; }
+
+  .item { border-radius: 12px; background: var(--card); padding: 10px; display: flex; flex-direction: column; gap: 8px; text-align: left; width: 100%; box-sizing: border-box; border: 1px solid transparent; }
+  .item { transition: opacity .15s; }
+  .item.muted { opacity: .6; }
+  .item.muted:hover, .item.muted:focus-visible { opacity: .9; }
+  .item .row { display: flex; gap: 8px; }
+  .item .bubble { background: var(--bubble); border-radius: 8px; padding: 8px 10px; flex: 1; }
+  .item .count { font: 400 12px/14px var(--mono); color: var(--dim); }
+  .thread { display: flex; flex-direction: column; gap: 10px; }
+  .thread .rule { height: 1px; background: #4C4C52; }
+  .thread .label { font: 500 12px/14px var(--font); color: var(--dim); }
+  .thread .reply { display: flex; flex-direction: column; gap: 6px; }
+  .thread .reply .body, .thread .reply .att { margin-left: 36px; }
+  .closex { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; border-radius: 8px; display: grid; place-items: center; color: var(--sub); }
+  .closex:hover { background: rgba(255,255,255,.07); }
+  .item.expanded { position: relative; }
+
+  /* ---------- chrome ---------- */
+  #hint {
+    position: fixed; top: 20px; left: calc((100% - var(--sidebar-w)) / 2); transform: translateX(-50%);
+    display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px; border-radius: 999px;
+    background: rgba(42,42,45,.92); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    font: 400 13px var(--font); color: var(--sub); white-space: nowrap; z-index: 20;
+  }
+  #hint b { color: #fff; font-weight: 500; }
+  #bottombar {
+    position: fixed; bottom: 22px; left: calc((100% - var(--sidebar-w)) / 2); transform: translateX(-50%);
+    background: var(--panel); border-radius: 14px; padding: 4px; display: flex; gap: 2px; z-index: 20;
+  }
+  #bottombar button { height: 42px; padding: 0 14px; border-radius: 10px; font: 400 13px var(--font); color: #fff; display: flex; align-items: center; gap: 6px; }
+  #bottombar button[aria-pressed="true"] { background: rgba(255,255,255,.1); }
+  #bottombar button:hover { background: rgba(255,255,255,.06); }
+
+  #console {
+    position: fixed; left: 20px; bottom: 22px; width: 284px; box-sizing: border-box; z-index: 20;
+    background: rgba(42,42,45,.94); -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+    border-radius: 14px; padding: 14px 16px 16px; display: flex; flex-direction: column; gap: 12px;
+  }
+  #console .eyebrow { font: 500 10px/12px var(--mono); letter-spacing: .12em; text-transform: uppercase; color: var(--dim); }
+  .switch { display: flex; flex-direction: column; gap: 6px; }
+  .switch button {
+    display: flex; gap: 10px; align-items: flex-start; padding: 10px; border-radius: 10px;
+    background: rgba(255,255,255,.03); border: 1px solid transparent; text-align: left;
+  }
+  .switch button[aria-pressed="true"] { background: rgba(154,102,255,.12); border-color: var(--violet); }
+  .switch .key { font: 500 11px/16px var(--mono); color: var(--dim); width: 16px; flex: none; }
+  .switch button[aria-pressed="true"] .key { color: var(--violet); }
+  .switch .t { font: 500 13px/16px var(--font); color: #fff; }
+  .switch .d { font: 400 12px/16px var(--font); color: var(--sub); margin-top: 2px; }
+  #warn { display: flex; gap: 8px; align-items: flex-start; font: 400 12px/16px var(--font); color: #FFC9A8; }
+  #warn s { width: 6px; height: 6px; border-radius: 999px; background: #FF8A4C; margin-top: 5px; flex: none; }
+  #console .keys { font: 400 11px/17px var(--font); color: var(--dim); }
+  #console .keys kbd { font: 400 11px var(--mono); border: 1px solid #55555B; border-radius: 4px; padding: 0 4px; color: var(--sub); }
+  #console .reset { align-self: flex-start; font: 400 12px var(--font); color: var(--sub); text-decoration: underline; text-underline-offset: 3px; }
+</style>
+</head>
+<body>
+
+<div id="stage"></div>
+<div id="overlay"><svg id="wires" aria-hidden="true"></svg></div>
+
+<div id="hint"><b>핀을 클릭</b><span id="hintText">해 스레드를 열고, 뷰를 돌려 보세요</span></div>
+
+<div id="float" hidden>
+  <div class="bar" id="floatBar">
+    <h2>Comment</h2>
+    <div class="grip">
+      <button class="x" type="button" id="floatClose" aria-label="스레드 닫기">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="inner" id="floatInner"></div>
+</div>
+
+<aside id="side" aria-label="Comment panel">
+  <div class="top">
+    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21.88 14.24c-.53 1.98-2.07 3.26-3.91 3.26-1.39 0-1.99-.42-2.69-.91-.33-.24-.67-.47-1.09-.67a4.9 4.9 0 0 0-4.39 0c-.42.2-.76.43-1.09.67-.7.49-1.3.91-2.69.91-1.85 0-3.37-1.28-3.9-3.26-.49-1.83.52-4.79 2.52-5.72C6.84 7.5 10.59 7.5 12 7.5s5.17 0 7.37 1.02c1.99.93 3 3.89 2.51 5.72z" stroke="#fff" stroke-width="2"/></svg>
+    <button class="save" type="button">Save</button>
+  </div>
+  <div class="title">Comment<span class="plus">+</span></div>
+  <div id="list"></div>
+</aside>
+
+<nav id="bottombar" aria-label="Editor toolbar">
+  <button type="button">Figma/ProtoPie</button>
+  <button type="button" aria-pressed="true">Comment</button>
+  <button type="button">XR Entry Point</button>
+  <button type="button">Controls</button>
+</nav>
+
+<aside id="console" aria-label="비교 설정">
+  <span class="eyebrow">Thread 보기 방식 비교</span>
+  <div class="switch" id="modes">
+    <button type="button" data-mode="float" aria-pressed="true">
+      <span class="key">1</span>
+      <span>
+        <span class="t">핀 옆 플로팅 · 위치 고정</span>
+        <span class="d">열릴 때 기즈모 반대편에 뜨고 그 자리에 고정돼요. 직접 끌어야만 움직여요. 핀이나 목록 카드를 누르면 카메라가 먼저 이동해요.</span>
+      </span>
+    </button>
+    <button type="button" data-mode="panel" aria-pressed="false">
+      <span class="key">2</span>
+      <span>
+        <span class="t">우측 패널 인라인</span>
+        <span class="d">목록 카드가 그 자리에서 펼쳐지고, 카메라가 그 코멘트로 이동해요. 뷰포트를 가리지 않아요.</span>
+      </span>
+    </button>
+  </div>
+  <div id="warn" hidden><s></s><span>스레드가 기즈모를 가리고 있어요. 기즈모를 쓰려면 스레드를 옮겨야 해요.</span></div>
+  <div class="keys">드래그로 회전 · 기즈모로 앵커 이동 · <kbd>Esc</kbd> 닫기</div>
+  <button class="reset" type="button" id="reset">처음 상태로</button>
+</aside>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/TransformControls.js"></script>
+<script>
+(() => {
+  const $ = s => document.querySelector(s);
+  const NS = 'http://www.w3.org/2000/svg';
+  const SIDEBAR = 340;
+
+  /* ================= data ================= */
+  const COMMENTS = [
+    {
+      id: 1, who: 'Jane', tone: 'violet', when: '18 hours ago',
+      text: 'Front bumper gap looks too wide on the left side.',
+      at: [2.35, 0.62, 0.62],
+      replies: [
+        { who: 'Sophie', tone: 'amber', when: '5 hours ago', text: 'Checked against the CAD, gap spec is 4mm here.', att: 3 },
+        { who: 'Jane', tone: 'violet', when: '1 hour ago', mention: 'Member', text: ' Will re-measure and update the spec sheet.' }
+      ]
+    },
+    {
+      id: 2, who: 'Sophie', tone: 'amber', when: '5 hours ago',
+      text: 'Wheel arch trim color does not match the reference.',
+      at: [1.45, 0.58, 0.99],
+      replies: [{ who: 'Jane', tone: 'violet', when: '2 hours ago', text: 'Swapped in the matte finish sample.' }]
+    },
+    {
+      id: 3, who: 'Jane', tone: 'violet', when: '2 hours ago',
+      text: 'Door handle position is 12mm lower than spec.',
+      at: [-0.35, 0.92, 0.88], replies: []
+    },
+    {
+      id: 4, who: 'Sophie', tone: 'amber', when: 'Just now',
+      text: 'Driver seat headrest nearly touches the roof liner at max height.',
+      at: [-0.25, 1.36, -0.42],
+      /* saved viewpoint: Sophie left this comment from inside the cabin */
+      view: { pos: [0.5, 1.28, 0.48], target: [-0.25, 1.24, -0.42] },
+      replies: [{ who: 'Jane', tone: 'violet', when: 'Just now', text: 'Checked in the headset, about 18mm of clearance left.' }]
+    }
+  ];
+
+  const S = { mode: 'float', open: null, floatPos: null, dragging: false };
+
+  /* ================= scene ================= */
+  const stage = $('#stage');
+  const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer.setClearColor(0x000000, 0);
+  stage.appendChild(renderer.domElement);
+  const canvas = renderer.domElement;
+
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 300);
+  const CAM0 = new THREE.Vector3(6.4, 3.0, 8.4);
+  camera.position.copy(CAM0);
+  const orbit = new THREE.OrbitControls(camera, canvas);
+  orbit.target.set(0, 0.8, 0);
+  orbit.enableDamping = true;
+  orbit.update();
+
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x303034, 0.95));
+  const sun = new THREE.DirectionalLight(0xffffff, 0.8);
+  sun.position.set(4, 8, 6);
+  scene.add(sun);
+
+  const grid = new THREE.GridHelper(60, 30, 0x55555a, 0x3a3a3f);
+  grid.material.transparent = true; grid.material.opacity = 0.5;
+  scene.add(grid);
+  const axis = (a, b, color) => {
+    const l = new THREE.Line(new THREE.BufferGeometry().setFromPoints([a, b]), new THREE.LineBasicMaterial({ color }));
+    l.position.y = 0.002; scene.add(l);
+  };
+  axis(new THREE.Vector3(-30, 0, 0), new THREE.Vector3(30, 0, 0), 0x50b786);
+  axis(new THREE.Vector3(0, 0, -30), new THREE.Vector3(0, 0, 30), 0xd23c3c);
+
+  const car = new THREE.Group();
+  const mesh = (geo, color, x, y, z, rot) => {
+    const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color, roughness: .55, metalness: .25 }));
+    m.position.set(x, y, z);
+    if (rot) m.rotation.set(rot[0], rot[1], rot[2]);
+    car.add(m);
+  };
+  mesh(new THREE.BoxGeometry(4.9, .62, 1.95), 0x5b5d60, 0, .58, 0);
+  /* cabin: roof, pillars and tinted glass so the interior can be seen and entered */
+  mesh(new THREE.BoxGeometry(2.36, .06, 1.7), 0x2f3134, -.3, 1.44, 0);
+  for (const x of [.84, -.3, -1.44]) for (const z of [.82, -.82]) mesh(new THREE.BoxGeometry(.08, .52, .06), 0x2f3134, x, 1.15, z);
+  const glassMat = new THREE.MeshStandardMaterial({ color: 0x8fa3b8, transparent: true, opacity: .16, roughness: .1, metalness: .1, side: THREE.DoubleSide, depthWrite: false });
+  const glass = (w, h, d, x, y, z) => { const g = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), glassMat); g.position.set(x, y, z); car.add(g); };
+  glass(2.28, .5, .02, -.3, 1.15, .83);
+  glass(2.28, .5, .02, -.3, 1.15, -.83);
+  glass(.02, .5, 1.6, .86, 1.15, 0);
+  glass(.02, .5, 1.6, -1.46, 1.15, 0);
+  /* interior */
+  mesh(new THREE.BoxGeometry(.28, .2, 1.58), 0x1c1c1f, .7, .99, 0);
+  for (const z of [-.42, .42]) {
+    mesh(new THREE.BoxGeometry(.5, .12, .46), 0x4a3b33, .05, .95, z);
+    mesh(new THREE.BoxGeometry(.1, .42, .46), 0x4a3b33, -.2, 1.16, z, [0, 0, .18]);
+    mesh(new THREE.BoxGeometry(.09, .1, .26), 0x4a3b33, -.26, 1.34, z);
+  }
+  mesh(new THREE.BoxGeometry(.5, .12, 1.4), 0x4a3b33, -1.05, .95, 0);
+  mesh(new THREE.BoxGeometry(.1, .4, 1.4), 0x4a3b33, -1.3, 1.14, 0, [0, 0, .18]);
+  mesh(new THREE.TorusGeometry(.16, .025, 10, 32), 0x121214, .5, 1.12, -.42, [0, Math.PI / 2, .35]);
+  for (const x of [1.5, -1.55]) for (const z of [.9, -.9]) {
+    mesh(new THREE.CylinderGeometry(.37, .37, .26, 28), 0x161618, x, .37, z, [Math.PI / 2, 0, 0]);
+  }
+  scene.add(car);
+
+  /* anchors live inside the car, so the gizmo moves the anchor itself */
+  for (const c of COMMENTS) {
+    c.node = new THREE.Object3D();
+    c.node.position.set(c.at[0], c.at[1], c.at[2]);
+    car.add(c.node);
+  }
+
+  const tc = new THREE.TransformControls(camera, canvas);
+  tc.setSize(0.62);
+  tc.addEventListener('dragging-changed', e => { orbit.enabled = !e.value; });
+  scene.add(tc);
+
+  /* ================= dom builders ================= */
+  const el = (tag, cls, html) => { const n = document.createElement(tag); if (cls) n.className = cls; if (html != null) n.innerHTML = html; return n; };
+  const av = c => `<span class="av${c.tone === 'amber' ? ' amber' : ''}">${c.who[0]}</span>`;
+  const metaRow = c => `<div class="meta">${av(c)}<span class="who">${c.who}</span><span class="when">${c.when}</span><span class="more">···</span></div>`;
+  const bodyHtml = r => r.mention
+    ? `<div class="body"><span class="mention">${r.mention}</span>${r.text}</div>`
+    : `<div class="body">${r.text}</div>`;
+  const attHtml = n => n ? `<div class="att"><i></i><i></i><i class="plus">+${n - 1}</i></div>` : '';
+  const replyHtml = r => `<div class="reply">${metaRow(r)}${bodyHtml(r)}${attHtml(r.att)}</div>`;
+  const shot = c => `<div class="shot"><span>${c.id}</span></div>`;
+  const inputHtml = '<div class="reply-input">Reply<b>&rarr;</b></div>';
+
+  /* ---------- sidebar ---------- */
+  const list = $('#list');
+  function renderList() {
+    list.innerHTML = '';
+    for (const c of COMMENTS) {
+      const expanded = S.mode === 'panel' && S.open === c.id;
+      const muted = S.mode === 'panel' && S.open && S.open !== c.id;
+      const item = el('div', 'item' + (S.open === c.id ? ' sel' : '') + (expanded ? ' expanded' : '') + (muted ? ' muted' : ''));
+      item.tabIndex = 0;
+      item.setAttribute('role', 'button');
+      item.setAttribute('aria-expanded', String(expanded));
+      let html = metaRow(c) + `<div class="row">${shot(c)}<div class="bubble body">${c.text}</div></div>`;
+      if (!expanded && c.replies.length) html += `<div class="count">${c.replies.length} ${c.replies.length === 1 ? 'reply' : 'replies'}</div>`;
+      if (expanded) {
+        html += '<div class="thread"><div class="rule"></div>';
+        html += c.replies.length
+          ? `<div class="label">${c.replies.length} ${c.replies.length === 1 ? 'reply' : 'replies'}</div>` + c.replies.map(replyHtml).join('')
+          : '<div class="label">No replies yet</div>';
+        html += inputHtml + '</div>';
+        html += '<button class="closex" type="button" aria-label="스레드 접기"><svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg></button>';
+      }
+      item.innerHTML = html;
+      const close = item.querySelector('.closex');
+      if (close) close.addEventListener('click', e => { e.stopPropagation(); setOpen(null); });
+      item.addEventListener('click', e => {
+        if (e.target.closest('.thread')) return;
+        if (S.open === c.id && S.mode === 'panel') setOpen(null);
+        else openAndFocus(c);
+      });
+      item.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); item.click(); } });
+      list.appendChild(item);
+      if (expanded) requestAnimationFrame(() => item.scrollIntoView({ block: 'nearest', behavior: 'smooth' }));
+    }
+  }
+
+  /* ---------- floating thread ---------- */
+  const floatEl = $('#float'), floatInner = $('#floatInner');
+  function renderFloat() {
+    const c = COMMENTS.find(x => x.id === S.open);
+    floatEl.style.visibility = '';
+    if (!c || S.mode !== 'float') { floatEl.hidden = true; return; }
+    floatEl.hidden = false;
+    floatInner.innerHTML =
+      metaRow(c) +
+      `<div class="head">${shot(c)}<div class="body">${c.text}</div></div>` +
+      (c.replies.length ? c.replies.map(replyHtml).join('') : '<div class="body" style="color:var(--dim)">No replies yet</div>') +
+      inputHtml;
+  }
+
+  /* ---------- pins ---------- */
+  const overlay = $('#overlay'), wires = $('#wires');
+  const pins = COMMENTS.map(c => {
+    const dot = el('div', 'dot');
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('stroke', '#FFFFFF'); line.setAttribute('stroke-width', '1'); line.setAttribute('opacity', '.5');
+    wires.appendChild(line);
+    const b = el('button', 'pin' + (c.tone === 'amber' ? ' amber' : ''), c.who[0]);
+    b.type = 'button';
+    b.setAttribute('aria-label', `${c.who}의 코멘트 열기`);
+    b.addEventListener('click', e => { e.stopPropagation(); openAndFocus(c); });
+    overlay.appendChild(dot); overlay.appendChild(b);
+    return { c, b, dot, line };
+  });
+  const leash = document.createElementNS(NS, 'line');
+  leash.setAttribute('stroke', '#9A66FF'); leash.setAttribute('stroke-width', '1');
+  leash.setAttribute('stroke-dasharray', '4 4'); leash.setAttribute('opacity', '.55');
+  wires.appendChild(leash);
+
+  /* ================= behaviour ================= */
+  /* pins and list cards: open the thread and fly to the comment's view.
+     In mode 1 the thread appears next to the pin once the camera arrives. */
+  function openAndFocus(c) {
+    setOpen(c.id);
+    if (S.mode === 'float') {
+      floatEl.style.visibility = 'hidden';
+      focusCamera(c, () => placeFloat(c));
+    } else {
+      focusCamera(c);
+    }
+  }
+  function setOpen(id) {
+    S.open = id;
+    const c = COMMENTS.find(x => x.id === id);
+    if (c) tc.attach(c.node); else tc.detach();
+    renderList(); renderFloat();
+    if (c && S.mode === 'float') placeFloat(c); else S.floatPos = null;
+  }
+
+  /* screen box the move gizmo occupies around an anchor (world-space axes, both directions) */
+  function gizmoRect(c) {
+    camera.updateMatrixWorld();
+    const wp = new THREE.Vector3();
+    c.node.getWorldPosition(wp);
+    const factor = wp.distanceTo(camera.position) * Math.min(1.9 * Math.tan(Math.PI * camera.fov / 360) / camera.zoom, 7);
+    const L = factor * tc.size / 7 * 1.15;
+    const pts = [[0,0,0],[L,0,0],[-L,0,0],[0,L,0],[0,-L,0],[0,0,L],[0,0,-L]]
+      .map(o => project(wp.clone().add(new THREE.Vector3(o[0], o[1], o[2]))));
+    const xs = pts.map(q => q[0]), ys = pts.map(q => q[1]);
+    const pad = 14;
+    const head = pinScreen(c);
+    return {
+      left: Math.min(...xs, head[0] - 20) - pad, right: Math.max(...xs, head[0] + 20) + pad,
+      top: Math.min(...ys, head[1] - 20) - pad, bottom: Math.max(...ys, head[1] + 20) + pad,
+      cx: (Math.min(...xs) + Math.max(...xs)) / 2
+    };
+  }
+  const overlapArea = (a, b) =>
+    Math.max(0, Math.min(a.right, b.right) - Math.max(a.left, b.left)) *
+    Math.max(0, Math.min(a.bottom, b.bottom) - Math.max(a.top, b.top));
+
+  /* placed once when the thread opens: the side away from the gizmo, then frozen */
+  function placeFloat(c) {
+    const w = floatEl.offsetWidth || 320, h = floatEl.offsetHeight || 320;
+    const R = gizmoRect(c);
+    const head = pinScreen(c);
+    const maxX = window.innerWidth - SIDEBAR - w - 12, maxY = window.innerHeight - h - 12;
+    const clamp = (x, y) => ({ x: Math.min(Math.max(x, 12), maxX), y: Math.min(Math.max(y, 12), maxY) });
+    const gap = 16;
+    const right = clamp(R.right + gap, head[1] - 22);
+    const left = clamp(R.left - gap - w, head[1] - 22);
+    const below = clamp(head[0] - w / 2, R.bottom + gap);
+    const above = clamp(head[0] - w / 2, R.top - gap - h);
+    const sides = R.cx > head[0] ? [left, right] : [right, left];
+    const candidates = [...sides, below, above];
+    const score = pos => overlapArea({ left: pos.x, right: pos.x + w, top: pos.y, bottom: pos.y + h }, R);
+    S.floatPos = candidates.find(pos => score(pos) === 0) || candidates.reduce((a, b) => score(b) < score(a) ? b : a);
+    applyFloatPos();
+    floatEl.style.visibility = '';
+  }
+  function applyFloatPos() {
+    if (!S.floatPos) return;
+    floatEl.style.left = S.floatPos.x + 'px';
+    floatEl.style.top = S.floatPos.y + 'px';
+  }
+
+  /* drag the thread by its bar */
+  let drag = null;
+  $('#floatBar').addEventListener('pointerdown', e => {
+    if (e.target.closest('.x')) return;
+    drag = { dx: e.clientX - S.floatPos.x, dy: e.clientY - S.floatPos.y };
+    floatEl.classList.add('dragging');
+    $('#floatBar').setPointerCapture(e.pointerId);
+  });
+  $('#floatBar').addEventListener('pointermove', e => {
+    if (!drag) return;
+    S.floatPos = {
+      x: Math.min(Math.max(e.clientX - drag.dx, 8), window.innerWidth - 328),
+      y: Math.min(Math.max(e.clientY - drag.dy, 8), window.innerHeight - 80)
+    };
+    applyFloatPos();
+  });
+  const endDrag = () => { drag = null; floatEl.classList.remove('dragging'); };
+  $('#floatBar').addEventListener('pointerup', endDrag);
+  $('#floatBar').addEventListener('pointercancel', endDrag);
+  $('#floatClose').addEventListener('click', () => setOpen(null));
+
+  document.querySelectorAll('#modes button').forEach(btn => {
+    btn.addEventListener('click', () => {
+      S.mode = btn.dataset.mode;
+      document.querySelectorAll('#modes button').forEach(b => b.setAttribute('aria-pressed', String(b === btn)));
+      $('#hintText').textContent = S.mode === 'float'
+        ? '해 스레드를 열고, 뷰를 돌려 보세요'
+        : '하면 카메라가 이동하고 패널에서 펼쳐져요';
+      setOpen(S.open);
+    });
+  });
+  $('#reset').addEventListener('click', () => {
+    camTween = null; camera.position.copy(CAM0); orbit.target.set(0, .8, 0); orbit.update();
+    COMMENTS.forEach(c => c.node.position.set(c.at[0], c.at[1], c.at[2]));
+    setOpen(null);
+  });
+  window.addEventListener('keydown', e => {
+    if (e.key === 'Escape') setOpen(null);
+    if (e.key === '1' || e.key === '2') document.querySelector(`#modes button:nth-of-type(${e.key})`).click();
+  });
+  canvas.addEventListener('pointerdown', e => { if (camTween) endTween(); canvas._d = { x: e.clientX, y: e.clientY, giz: !!(tc.object && tc.axis) }; });
+  canvas.addEventListener('pointerup', e => {
+    const d = canvas._d; canvas._d = null;
+    if (!d || d.giz) return;
+    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) < 5) setOpen(null);
+  });
+
+  /* ---------- camera focus (mode 2) ---------- */
+  let camTween = null;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function focusCamera(c, done) {
+    let toPos, toTarget;
+    if (c.view) {
+      toPos = car.localToWorld(new THREE.Vector3(...c.view.pos));
+      toTarget = car.localToWorld(new THREE.Vector3(...c.view.target));
+    } else {
+      toTarget = new THREE.Vector3();
+      c.node.getWorldPosition(toTarget);
+      const local = c.node.position;
+      const dir = new THREE.Vector3(local.x * 0.25, 0.55, local.z < 0 ? -1 : 1).normalize();
+      toPos = toTarget.clone().add(dir.multiplyScalar(4.2));
+    }
+    camTween = {
+      t0: performance.now(), dur: reduceMotion ? 0 : 900,
+      fromPos: camera.position.clone(), fromTarget: orbit.target.clone(),
+      toPos, toTarget, done
+    };
+  }
+
+  function endTween() {
+    const d = camTween && camTween.done;
+    camTween = null;
+    if (d) { orbit.update(); camera.updateMatrixWorld(); d(); }
+  }
+
+  /* ================= frame ================= */
+  const v3 = new THREE.Vector3();
+  const project = world => {
+    v3.copy(world).project(camera);
+    const w = window.innerWidth - SIDEBAR;
+    return [(v3.x * .5 + .5) * w, (-v3.y * .5 + .5) * window.innerHeight, v3.z];
+  };
+  const anchorScreen = c => { c.node.getWorldPosition(v3); return project(v3.clone()); };
+  const pinScreen = c => { const a = anchorScreen(c); return [a[0] - 34, a[1] - 46]; };
+
+  function frame() {
+    if (camTween) {
+      const k = camTween.dur ? Math.min(1, (performance.now() - camTween.t0) / camTween.dur) : 1;
+      const e = 1 - Math.pow(1 - k, 3);
+      camera.position.lerpVectors(camTween.fromPos, camTween.toPos, e);
+      orbit.target.lerpVectors(camTween.fromTarget, camTween.toTarget, e);
+      if (k >= 1) endTween();
+    }
+    orbit.update();
+    scene.updateMatrixWorld();
+
+    for (const p of pins) {
+      const a = anchorScreen(p.c);
+      const head = [a[0] - 34, a[1] - 46];
+      const visible = a[2] < 1;
+      p.b.style.display = p.dot.style.display = visible ? '' : 'none';
+      p.line.setAttribute('visibility', visible ? 'visible' : 'hidden');
+      if (!visible) continue;
+      p.b.style.setProperty('--px', (head[0] - 16) + 'px');
+      p.b.style.setProperty('--py', (head[1] - 16) + 'px');
+      p.b.style.transform = `translate(${head[0] - 16}px, ${head[1] - 16}px)`;
+      p.dot.style.transform = `translate(${a[0] - 4.5}px, ${a[1] - 4.5}px)`;
+      p.line.setAttribute('x1', head[0]); p.line.setAttribute('y1', head[1] + 12);
+      p.line.setAttribute('x2', a[0]); p.line.setAttribute('y2', a[1]);
+      const sel = S.open === p.c.id;
+      p.b.classList.toggle('sel', sel);
+      p.b.classList.toggle('dim', !!S.open && !sel);
+    }
+
+    /* leash between a frozen thread and the pin it belongs to */
+    const openC = COMMENTS.find(c => c.id === S.open);
+    if (openC && S.mode === 'float' && S.floatPos) {
+      const a = anchorScreen(openC);
+      const head = [a[0] - 34, a[1] - 46];
+      leash.setAttribute('visibility', 'visible');
+      const r = floatEl.getBoundingClientRect();
+      const nx = Math.min(Math.max(head[0], r.left), r.right), ny = Math.min(Math.max(head[1], r.top), r.bottom);
+      leash.setAttribute('x1', nx); leash.setAttribute('y1', ny);
+      leash.setAttribute('x2', head[0]); leash.setAttribute('y2', head[1]);
+      $('#warn').hidden = !overlapArea(r, gizmoRect(openC));
+    } else {
+      leash.setAttribute('visibility', 'hidden');
+      $('#warn').hidden = true;
+    }
+
+    renderer.render(scene, camera);
+    requestAnimationFrame(frame);
+  }
+
+  function resize() {
+    const w = window.innerWidth - SIDEBAR, h = window.innerHeight;
+    renderer.setSize(w, h);
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
+  }
+  window.addEventListener('resize', resize);
+
+  resize();
+  renderList();
+  setOpen(1);
+  frame();
+})();
+</script>
+</body>
+</html>
